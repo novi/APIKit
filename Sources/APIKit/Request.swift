@@ -11,6 +11,7 @@ import Result
 public protocol Request {
     /// The response type associated with the request type.
     associatedtype Response
+    associatedtype DataParser: APIKit.DataParser
 
     /// The base URL.
     var baseURL: URL { get }
@@ -29,7 +30,7 @@ public protocol Request {
     /// The actual parameters for the URL query. The values of this property will be escaped using `URLEncodedSerialization`.
     /// If this property is not implemented and `method.prefersQueryParameter` is `true`, the value of this property
     /// will be computed from `parameters`.
-    var queryParameters: [String: Any]? { get }
+    var queryParameters: QueryParameters? { get }
 
     /// The actual parameters for the HTTP body. If this property is not implemented and `method.prefersQueryParameter` is `false`,
     /// the value of this property will be computed from `parameters` using `JSONBodyParameters`.
@@ -53,25 +54,26 @@ public protocol Request {
     /// The default implementation of this method is provided to throw `RequestError.unacceptableStatusCode`
     /// if the HTTP status code is not in `200..<300`.
     /// - Throws: `Error`
-    func intercept(object: Any, urlResponse: HTTPURLResponse) throws -> Any
+    func intercept(object: DataParser.Parsed, urlResponse: HTTPURLResponse) throws -> DataParser.Parsed
 
     /// Build `Response` instance from raw response object. This method is called after
     /// `intercept(object:urlResponse:)` if it does not throw any error.
     /// - Throws: `Error`
-    func response(from object: Any, urlResponse: HTTPURLResponse) throws -> Response
+    func response(from object: DataParser.Parsed, urlResponse: HTTPURLResponse) throws -> Response
 }
 
 public extension Request {
+
     public var parameters: Any? {
         return nil
     }
 
-    public var queryParameters: [String: Any]? {
-        guard let parameters = parameters as? [String: Any], method.prefersQueryParameters else {
+    public var queryParameters: QueryParameters? {
+        guard let parameters = parameters, method.prefersQueryParameters else {
             return nil
         }
 
-        return parameters
+        return URLEncodedQueryParameters(parameters: parameters)
     }
 
     public var bodyParameters: BodyParameters? {
@@ -86,15 +88,11 @@ public extension Request {
         return [:]
     }
 
-    public var dataParser: DataParser {
-        return JSONDataParser(readingOptions: [])
-    }
-
     public func intercept(urlRequest: URLRequest) throws -> URLRequest {
         return urlRequest
     }
 
-    public func intercept(object: Any, urlResponse: HTTPURLResponse) throws -> Any {
+    public func intercept(object: DataParser.Parsed, urlResponse: HTTPURLResponse) throws -> DataParser.Parsed {
         guard 200..<300 ~= urlResponse.statusCode else {
             throw ResponseError.unacceptableStatusCode(urlResponse.statusCode)
         }
@@ -111,8 +109,8 @@ public extension Request {
 
         var urlRequest = URLRequest(url: url)
 
-        if let queryParameters = queryParameters, !queryParameters.isEmpty {
-            components.percentEncodedQuery = URLEncodedSerialization.string(from: queryParameters)
+        if let queryString = queryParameters?.encode(), !queryString.isEmpty {
+            components.percentEncodedQuery = queryString
         }
 
         if let bodyParameters = bodyParameters {
@@ -145,4 +143,14 @@ public extension Request {
         let passedObject = try intercept(object: parsedObject, urlResponse: urlResponse)
         return try response(from: passedObject, urlResponse: urlResponse)
     }
+}
+
+public protocol JSONRequest: Request {}
+
+public extension JSONRequest {
+
+    public var dataParser: JSONDataParser {
+        return JSONDataParser(readingOptions: [])
+    }
+
 }

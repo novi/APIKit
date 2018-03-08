@@ -14,12 +14,14 @@ class TestSessionTask: SessionTask {
     static var idGenerator = IdGenerator()
     
     var taskIdentifier: Int
-    var handler: (Data?, URLResponse?, Error?) -> Void
+    var completionHandler: (Data?, URLResponse?, Error?) -> Void
+    var progressHandler: (Int64, Int64, Int64) -> Void
     var cancelled = false
 
-    init(handler: @escaping (Data?, URLResponse?, Error?) -> Void) {
+    init(progressHandler: @escaping  (Int64, Int64, Int64) -> Void, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) {
         self.taskIdentifier = TestSessionTask.idGenerator.next()
-        self.handler = handler
+        self.completionHandler = completionHandler
+        self.progressHandler = progressHandler
     }
 
     func resume() {
