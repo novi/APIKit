@@ -33,6 +33,8 @@ class JSONBodyParametersTests: XCTestCase {
         } catch let error as NSError {
             XCTAssertEqual(error.domain, NSCocoaErrorDomain)
             XCTAssertEqual(error.code, 3840)
+        } catch {
+            XCTFail()
         }
     }
 }
