@@ -11,6 +11,18 @@ class URLEncodedSerializationTests: XCTestCase {
         XCTAssertEqual(object?["key2"], "value2")
     }
 
+    func testUnescape() {
+        let string = URLEncodedSerialization.string(from: [
+            "url": "https://example.com",
+            "kanji": "漢字",
+        ])
+
+        let data = string.data(using: .utf8)!
+        let object = try? URLEncodedSerialization.object(from: data, encoding: .utf8)
+        XCTAssertEqual(object?["url"], "https://example.com")
+        XCTAssertEqual(object?["kanji"], "漢字")
+    }
+
     func testInvalidFormatString() {
         let string = "key==value&"
 
@@ -69,7 +81,9 @@ class URLEncodedSerializationTests: XCTestCase {
                 return
             }
 
-            XCTAssertEqual((object as AnyObject)["hey"], (dictionaries as AnyObject)["hey"])
+            XCTAssertEqual(
+                (object as? [[String: String]])?[0]["hey"],
+                (dictionaries as? [[String: String]])?[0]["hey"])
         }
     }
 }

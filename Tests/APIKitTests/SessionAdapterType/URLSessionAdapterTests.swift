@@ -1,8 +1,11 @@
 import Foundation
-import APIKit
 import XCTest
+import Dispatch
+
+@testable import APIKit
 
 class URLSessionAdapterTests: XCTestCase {
+    var adapter: URLSessionAdapter!
     var session: Session!
 
     override func setUp() {
@@ -11,7 +14,7 @@ class URLSessionAdapterTests: XCTestCase {
         let configuration = URLSessionConfiguration.default
         configuration.protocolClasses = [HTTPStub.self]
         
-        let adapter = URLSessionAdapter(configuration: configuration)
+        adapter = URLSessionAdapter(configuration: configuration)
         session = Session(adapter: adapter)
     }
 
@@ -35,8 +38,10 @@ class URLSessionAdapterTests: XCTestCase {
             
             expectation.fulfill()
         }
-        
+
         waitForExpectations(timeout: 10.0, handler: nil)
+        
+        XCTAssert(adapter.taskProperties.isEmpty)
     }
     
     func testConnectionError() {
@@ -65,6 +70,8 @@ class URLSessionAdapterTests: XCTestCase {
         }
         
         waitForExpectations(timeout: 10.0, handler: nil)
+        
+        XCTAssert(adapter.taskProperties.isEmpty)
     }
 
     func testCancel() {
@@ -91,5 +98,7 @@ class URLSessionAdapterTests: XCTestCase {
         }
 
         waitForExpectations(timeout: 10.0, handler: nil)
+        
+        XCTAssert(adapter.taskProperties.isEmpty)
     }
 }
