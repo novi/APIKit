@@ -7,12 +7,12 @@ let package = Package(
         .library(name: "APIKit", targets: ["APIKit"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/antitypical/Result.git", from: "3.0.0"),
+        //.package(url: "https://github.com/antitypical/Result.git", from: "3.0.0"),
     ],
     targets: [
         .target(
             name: "APIKit", 
-            dependencies: ["Result"],
+            dependencies: [],
             exclude: ["BodyParameters/AbstractInputStream.m"]
         ),
          .testTarget(
