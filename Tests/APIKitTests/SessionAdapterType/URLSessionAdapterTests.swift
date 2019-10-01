@@ -67,6 +67,7 @@ class URLSessionAdapterTests: XCTestCase {
         waitForExpectations(timeout: 10.0, handler: nil)
     }
 
+    #if canImport(Darwin)
     func testCancel() {
         let data = "{}".data(using: .utf8)!
         HTTPStub.stubResult = .success(data)
@@ -92,4 +93,8 @@ class URLSessionAdapterTests: XCTestCase {
 
         waitForExpectations(timeout: 10.0, handler: nil)
     }
+    #else
+    func testCancel() {
+    }
+    #endif
 }

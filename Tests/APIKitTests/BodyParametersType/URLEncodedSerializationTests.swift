@@ -69,7 +69,11 @@ class URLEncodedSerializationTests: XCTestCase {
                 return
             }
 
+            #if canImport(Darwin)
             XCTAssertEqual((object as AnyObject)["hey"], (dictionaries as AnyObject)["hey"])
+            #else
+            XCTAssertEqual((object as? [[String: String]]), (dictionaries as? [[String: String]]))
+            #endif
         }
     }
 }

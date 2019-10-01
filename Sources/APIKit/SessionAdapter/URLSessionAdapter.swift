@@ -1,7 +1,21 @@
 import Foundation
 
+#if !canImport(Darwin)
+@_exported import FoundationNetworking
+#endif
+
 extension URLSessionTask: SessionTask {
 
+}
+
+fileprivate final class TaskProperty {
+    var buffer: NSMutableData
+    let handler: (Data?, URLResponse?, Error?) -> Void
+    
+    init(buffer: NSMutableData = NSMutableData(), handler: @escaping (Data?, URLResponse?, Error?) -> Void) {
+        self.buffer = buffer
+        self.handler = handler
+    }
 }
 
 private var dataTaskResponseBufferKey = 0
@@ -28,8 +42,12 @@ open class URLSessionAdapter: NSObject, SessionAdapter, URLSessionDelegate, URLS
     open func createTask(with URLRequest: URLRequest, handler: @escaping (Data?, URLResponse?, Error?) -> Void) -> SessionTask {
         let task = urlSession.dataTask(with: URLRequest)
 
+        #if canImport(Darwin)
         setBuffer(NSMutableData(), forTask: task)
         setHandler(handler, forTask: task)
+        #else
+        taskProperties[task.taskIdentifier] = TaskProperty(handler: handler)
+        #endif
 
         return task
     }
@@ -44,26 +62,44 @@ open class URLSessionAdapter: NSObject, SessionAdapter, URLSessionDelegate, URLS
             handler(allTasks.map { $0 })
         }
     }
+    
+    // TODO: lock
+    #if !canImport(Darwin)
+    private var taskProperties = [Int: TaskProperty]()
+    #endif
 
+    #if canImport(Darwin)
     private func setBuffer(_ buffer: NSMutableData, forTask task: URLSessionTask) {
         objc_setAssociatedObject(task, &dataTaskResponseBufferKey, buffer, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
     }
-
-    private func buffer(for task: URLSessionTask) -> NSMutableData? {
-        return objc_getAssociatedObject(task, &dataTaskResponseBufferKey) as? NSMutableData
-    }
-
+    
     private func setHandler(_ handler: @escaping (Data?, URLResponse?, Error?) -> Void, forTask task: URLSessionTask) {
         objc_setAssociatedObject(task, &taskAssociatedObjectCompletionHandlerKey, handler as Any, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
     }
+    #endif
 
+    private func buffer(for task: URLSessionTask) -> NSMutableData? {
+        #if canImport(Darwin)
+        return objc_getAssociatedObject(task, &dataTaskResponseBufferKey) as? NSMutableData
+        #else
+        return taskProperties[task.taskIdentifier]?.buffer
+        #endif
+    }
+    
     private func handler(for task: URLSessionTask) -> ((Data?, URLResponse?, Error?) -> Void)? {
+        #if canImport(Darwin)
         return objc_getAssociatedObject(task, &taskAssociatedObjectCompletionHandlerKey) as? (Data?, URLResponse?, Error?) -> Void
+        #else
+        return taskProperties[task.taskIdentifier]?.handler
+        #endif
     }
 
     // MARK: URLSessionTaskDelegate
     open func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         handler(for: task)?(buffer(for: task) as Data?, task.response, error)
+        #if !canImport(Darwin)
+        taskProperties.removeValue(forKey: task.taskIdentifier)
+        #endif
     }
 
     // MARK: URLSessionDataDelegate

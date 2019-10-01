@@ -27,12 +27,20 @@ class TestSessionAdapter: SessionAdapter {
         self.urlResponse = urlResponse
         self.error = error
 
-        self.runner = Runner()
+        let runner = Runner()
+        self.runner = runner
+        
+        #if canImport(Darwin)
         self.timer = Timer.scheduledTimer(timeInterval: 0.001,
             target: runner,
             selector: #selector(Runner.run),
             userInfo: nil,
             repeats: true)
+        #else
+        self.timer = Timer.scheduledTimer(withTimeInterval: 0.001, repeats: true, block: { [weak runner] _ in
+            runner?.run()
+        })
+        #endif
 
         self.runner.adapter = self
     }

@@ -1,5 +1,8 @@
 import Foundation
 import Dispatch
+#if !canImport(Darwin)
+import FoundationNetworking
+#endif
 
 class HTTPStub: URLProtocol {
     static var stubResult: Result<Data, NSError> = .success(Data())

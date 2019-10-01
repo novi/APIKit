@@ -40,10 +40,13 @@ open class Session {
         return shared.send(request, callbackQueue: callbackQueue, handler: handler)
     }
 
+    #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS) // available only Apple platform
+    
     /// Calls `cancelRequests(with:passingTest:)` of `sharedSession`.
     open class func cancelRequests<Request: APIKit.Request>(with requestType: Request.Type, passingTest test: @escaping (Request) -> Bool = { _ in true }) {
         shared.cancelRequests(with: requestType, passingTest: test)
     }
+    #endif
 
     /// Sends a request and receives the result as the argument of `handler` closure. This method takes
     /// a type parameter `Request` that conforms to `Request` protocol. The result of passed request is
@@ -90,11 +93,15 @@ open class Session {
             }
         }
 
+        #if canImport(Darwin)
         setRequest(request, forTask: task)
+        #endif
         task.resume()
 
         return task
     }
+    
+    #if canImport(Darwin) // available only Apple platform
 
     /// Cancels requests that passes the test.
     /// - parameter requestType: The request type to cancel.
@@ -114,10 +121,11 @@ open class Session {
     }
 
     private func setRequest<Request: APIKit.Request>(_ request: Request, forTask task: SessionTask) {
-        objc_setAssociatedObject(task, &taskRequestKey, request, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        return objc_setAssociatedObject(task, &taskRequestKey, request, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
     }
 
     private func requestForTask<Request: APIKit.Request>(_ task: SessionTask) -> Request? {
         return objc_getAssociatedObject(task, &taskRequestKey) as? Request
     }
+    #endif
 }

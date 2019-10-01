@@ -29,7 +29,7 @@ public struct MultipartFormDataBodyParameters: BodyParameters {
     public let boundary: String
     public let entityType: EntityType
 
-    public init(parts: [Part], boundary: String = String(format: "%08x%08x", arc4random(), arc4random()), entityType: EntityType = .data) {
+    public init(parts: [Part], boundary: String = String(format: "%08x%08x", UInt32.random(in: 0...UInt32.max), UInt32.random(in: 0...UInt32.max)), entityType: EntityType = .data) {
         self.parts = parts
         self.boundary = boundary
         self.entityType = entityType
@@ -96,6 +96,8 @@ public extension MultipartFormDataBodyParameters {
             self.count = data.count
         }
 
+        #if canImport(Darwin) // available only Apple platform
+        
         /// Returns Part instance that has input stream of specified file URL.
         /// If `mimeType` or `fileName` are `nil`, values for the fields will be detected from URL.
         public init(fileURL: URL, name: String, mimeType: String? = nil, fileName: String? = nil) throws {
@@ -122,6 +124,7 @@ public extension MultipartFormDataBodyParameters {
             self.fileName = fileName ?? fileURL.lastPathComponent
             self.count = bodyLength
         }
+        #endif
     }
 
     internal class PartInputStream: AbstractInputStream {

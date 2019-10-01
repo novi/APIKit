@@ -79,8 +79,12 @@ class SessionTests: XCTestCase {
     }
 
     func testNonHTTPURLResponseError() {
+        #if canImport(Darwin)
         adapter.urlResponse = URLResponse()
-
+        #else
+        adapter.urlResponse = URLResponse(url: URL(string: "dummy")!, mimeType: nil, expectedContentLength: 0, textEncodingName: nil)
+        #endif
+        
         let expectation = self.expectation(description: "wait for response")
         let request = TestRequest()
         
@@ -123,6 +127,8 @@ class SessionTests: XCTestCase {
 
     }
 
+    #if canImport(Darwin)
+    
     // MARK: Cancel
     func testCancel() {
         let expectation = self.expectation(description: "wait for response")
@@ -221,6 +227,14 @@ class SessionTests: XCTestCase {
 
         waitForExpectations(timeout: 1.0, handler: nil)
     }
+    #else
+    func testCancel() {
+    }
+    func testCancelFilter() {
+    }
+    func testCancelOtherRequest() {
+    }
+    #endif
 
     // MARK: Class methods
     func testSharedSession() {
@@ -242,16 +256,23 @@ class SessionTests: XCTestCase {
                 return super.send(request)
             }
 
+            #if canImport(Darwin)
             override func cancelRequests<Request : APIKit.Request>(with requestType: Request.Type, passingTest test: @escaping (Request) -> Bool) {
                 functionCallFlags[(#function)] = true
             }
+            #endif
         }
 
         let testSession = SessionSubclass.testSesssion
         SessionSubclass.send(TestRequest())
+        #if canImport(Darwin)
         SessionSubclass.cancelRequests(with: TestRequest.self)
+        #endif
 
         XCTAssertEqual(testSession.functionCallFlags["send(_:callbackQueue:handler:)"], true)
+        
+        #if canImport(Darwin)
         XCTAssertEqual(testSession.functionCallFlags["cancelRequests(with:passingTest:)"], true)
+        #endif
     }
 }
