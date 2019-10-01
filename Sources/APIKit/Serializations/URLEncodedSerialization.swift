@@ -1,6 +1,6 @@
 import Foundation
 
-#if !canImport(Darwin)
+#if !canImport(ObjectiveC)
 import CoreFoundation
 #endif
 
@@ -43,7 +43,7 @@ private func escape(_ string: String) -> String {
 
 private func unescape(_ string: String) -> String {
     // TODO: NULL on failure
-    #if canImport(Darwin)
+    #if canImport(ObjectiveC)
     return CFURLCreateStringByReplacingPercentEscapes(nil, string as CFString, nil) as String
     #else
     return unsafeBitCast(CFURLCreateStringByReplacingPercentEscapes(nil, unsafeBitCast((string as NSString), to: CFString.self), nil), to: NSString.self)._bridgeToSwift()

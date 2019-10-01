@@ -96,7 +96,7 @@ public extension MultipartFormDataBodyParameters {
             self.count = data.count
         }
 
-        #if canImport(Darwin) // available only Apple platform
+        #if canImport(ObjectiveC) // available only Apple platform
         
         /// Returns Part instance that has input stream of specified file URL.
         /// If `mimeType` or `fileName` are `nil`, values for the fields will be detected from URL.

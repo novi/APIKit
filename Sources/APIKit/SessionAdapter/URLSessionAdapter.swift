@@ -1,6 +1,6 @@
 import Foundation
 
-#if !canImport(Darwin)
+#if !canImport(ObjectiveC)
 @_exported import FoundationNetworking
 #endif
 
@@ -42,7 +42,7 @@ open class URLSessionAdapter: NSObject, SessionAdapter, URLSessionDelegate, URLS
     open func createTask(with URLRequest: URLRequest, handler: @escaping (Data?, URLResponse?, Error?) -> Void) -> SessionTask {
         let task = urlSession.dataTask(with: URLRequest)
 
-        #if canImport(Darwin)
+        #if canImport(ObjectiveC)
         setBuffer(NSMutableData(), forTask: task)
         setHandler(handler, forTask: task)
         #else
@@ -64,11 +64,11 @@ open class URLSessionAdapter: NSObject, SessionAdapter, URLSessionDelegate, URLS
     }
     
     // TODO: lock
-    #if !canImport(Darwin)
+    #if !canImport(ObjectiveC)
     private var taskProperties = [Int: TaskProperty]()
     #endif
 
-    #if canImport(Darwin)
+    #if canImport(ObjectiveC)
     private func setBuffer(_ buffer: NSMutableData, forTask task: URLSessionTask) {
         objc_setAssociatedObject(task, &dataTaskResponseBufferKey, buffer, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
     }
@@ -79,7 +79,7 @@ open class URLSessionAdapter: NSObject, SessionAdapter, URLSessionDelegate, URLS
     #endif
 
     private func buffer(for task: URLSessionTask) -> NSMutableData? {
-        #if canImport(Darwin)
+        #if canImport(ObjectiveC)
         return objc_getAssociatedObject(task, &dataTaskResponseBufferKey) as? NSMutableData
         #else
         return taskProperties[task.taskIdentifier]?.buffer
@@ -87,7 +87,7 @@ open class URLSessionAdapter: NSObject, SessionAdapter, URLSessionDelegate, URLS
     }
     
     private func handler(for task: URLSessionTask) -> ((Data?, URLResponse?, Error?) -> Void)? {
-        #if canImport(Darwin)
+        #if canImport(ObjectiveC)
         return objc_getAssociatedObject(task, &taskAssociatedObjectCompletionHandlerKey) as? (Data?, URLResponse?, Error?) -> Void
         #else
         return taskProperties[task.taskIdentifier]?.handler
@@ -97,7 +97,7 @@ open class URLSessionAdapter: NSObject, SessionAdapter, URLSessionDelegate, URLS
     // MARK: URLSessionTaskDelegate
     open func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         handler(for: task)?(buffer(for: task) as Data?, task.response, error)
-        #if !canImport(Darwin)
+        #if !canImport(ObjectiveC)
         taskProperties.removeValue(forKey: task.taskIdentifier)
         #endif
     }

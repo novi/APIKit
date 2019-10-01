@@ -93,7 +93,7 @@ open class Session {
             }
         }
 
-        #if canImport(Darwin)
+        #if canImport(ObjectiveC)
         setRequest(request, forTask: task)
         #endif
         task.resume()
@@ -101,7 +101,7 @@ open class Session {
         return task
     }
     
-    #if canImport(Darwin) // available only Apple platform
+    #if canImport(ObjectiveC) // available only Apple platform
 
     /// Cancels requests that passes the test.
     /// - parameter requestType: The request type to cancel.
