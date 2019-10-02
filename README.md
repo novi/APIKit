@@ -32,13 +32,18 @@ Session.send(request) { result in
 
 - Swift 5.0 or later
 - iOS 8.0 or later
-- Mac OS 10.10 or later
+- macOS 10.10 or later
 - watchOS 2.0 or later
 - tvOS 9.0 or later
 
 If you use Swift 2.2 or 2.3, try [APIKit 2.0.5](https://github.com/ishkawa/APIKit/tree/2.0.5).
 
 If you use Swift 4.2 or before, try [APIKit 4.1.0](https://github.com/ishkawa/APIKit/tree/4.1.0).
+
+### Linux Notes
+
+- Requires Swift 5.1 or later
+- Cancelling request mechanism is not available.
 
 ## Installation
 

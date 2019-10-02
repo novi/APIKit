@@ -1,6 +1,6 @@
 import Foundation
 import Dispatch
-#if !canImport(Darwin)
+#if !canImport(ObjectiveC) && canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
 

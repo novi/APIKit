@@ -40,7 +40,7 @@ open class Session {
         return shared.send(request, callbackQueue: callbackQueue, handler: handler)
     }
 
-    #if os(OSX) || os(iOS) || os(watchOS) || os(tvOS) // available only Apple platform
+    #if canImport(ObjectiveC) // available only Apple platform
     
     /// Calls `cancelRequests(with:passingTest:)` of `sharedSession`.
     open class func cancelRequests<Request: APIKit.Request>(with requestType: Request.Type, passingTest test: @escaping (Request) -> Bool = { _ in true }) {

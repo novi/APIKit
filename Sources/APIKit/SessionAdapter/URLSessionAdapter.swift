@@ -1,6 +1,6 @@
 import Foundation
 
-#if !canImport(ObjectiveC)
+#if !canImport(ObjectiveC) && canImport(FoundationNetworking)
 @_exported import FoundationNetworking
 #endif
 
@@ -8,7 +8,8 @@ extension URLSessionTask: SessionTask {
 
 }
 
-fileprivate final class TaskProperty {
+#if !canImport(ObjectiveC)
+fileprivate final class TaskAttribute {
     var buffer: NSMutableData
     let handler: (Data?, URLResponse?, Error?) -> Void
     
@@ -17,6 +18,7 @@ fileprivate final class TaskProperty {
         self.handler = handler
     }
 }
+#endif
 
 private var dataTaskResponseBufferKey = 0
 private var taskAssociatedObjectCompletionHandlerKey = 0
@@ -46,7 +48,9 @@ open class URLSessionAdapter: NSObject, SessionAdapter, URLSessionDelegate, URLS
         setBuffer(NSMutableData(), forTask: task)
         setHandler(handler, forTask: task)
         #else
-        taskProperties[task.taskIdentifier] = TaskProperty(handler: handler)
+        tasksAttributeMutex.sync {
+            tasksAttribute[task.taskIdentifier] = TaskAttribute(handler: handler)
+        }
         #endif
 
         return task
@@ -63,9 +67,9 @@ open class URLSessionAdapter: NSObject, SessionAdapter, URLSessionDelegate, URLS
         }
     }
     
-    // TODO: lock
     #if !canImport(ObjectiveC)
-    private var taskProperties = [Int: TaskProperty]()
+    private var tasksAttribute = [Int: TaskAttribute]()
+    private var tasksAttributeMutex = Mutex()
     #endif
 
     #if canImport(ObjectiveC)
@@ -82,7 +86,9 @@ open class URLSessionAdapter: NSObject, SessionAdapter, URLSessionDelegate, URLS
         #if canImport(ObjectiveC)
         return objc_getAssociatedObject(task, &dataTaskResponseBufferKey) as? NSMutableData
         #else
-        return taskProperties[task.taskIdentifier]?.buffer
+        return tasksAttributeMutex.sync {
+            tasksAttribute[task.taskIdentifier]?.buffer
+        }
         #endif
     }
     
@@ -90,7 +96,9 @@ open class URLSessionAdapter: NSObject, SessionAdapter, URLSessionDelegate, URLS
         #if canImport(ObjectiveC)
         return objc_getAssociatedObject(task, &taskAssociatedObjectCompletionHandlerKey) as? (Data?, URLResponse?, Error?) -> Void
         #else
-        return taskProperties[task.taskIdentifier]?.handler
+        return tasksAttributeMutex.sync {
+            tasksAttribute[task.taskIdentifier]?.handler
+        }
         #endif
     }
 
@@ -98,7 +106,9 @@ open class URLSessionAdapter: NSObject, SessionAdapter, URLSessionDelegate, URLS
     open func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         handler(for: task)?(buffer(for: task) as Data?, task.response, error)
         #if !canImport(ObjectiveC)
-        taskProperties.removeValue(forKey: task.taskIdentifier)
+        tasksAttributeMutex.sync {
+            tasksAttribute.removeValue(forKey: task.taskIdentifier)
+        }
         #endif
     }
 
@@ -107,3 +117,27 @@ open class URLSessionAdapter: NSObject, SessionAdapter, URLSessionDelegate, URLS
         buffer(for: dataTask)?.append(data)
     }
 }
+
+#if !canImport(ObjectiveC)
+final class Mutex {
+    private var mutex = pthread_mutex_t()
+    init() {
+        pthread_mutex_init(&mutex, nil)
+    }
+    deinit {
+        pthread_mutex_destroy(&mutex)
+    }
+    private func lock() {
+        pthread_mutex_lock(&mutex)
+    }
+    private func unlock() {
+        pthread_mutex_unlock(&mutex)
+    }
+    @discardableResult func sync<T>(_ block: () -> T) -> T {
+        lock()
+        let result = block()
+        unlock()
+        return result
+    }
+}
+#endif
